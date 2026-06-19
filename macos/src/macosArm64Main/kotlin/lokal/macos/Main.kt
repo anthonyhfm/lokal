@@ -13,7 +13,7 @@ fun main() {
 
 private class MacosTerminalController : TerminalController {
     override fun enterAlternateScreen() {
-        print("\u001B[?1049h\u001B[?25l")
+        print("\u001B[?1049h\u001B[H\u001B[2J\u001B[?25l")
     }
 
     override fun exitAlternateScreen() {

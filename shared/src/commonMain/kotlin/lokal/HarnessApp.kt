@@ -22,8 +22,8 @@ import com.jakewharton.mosaic.ui.Box
 import com.jakewharton.mosaic.ui.Color
 import com.jakewharton.mosaic.ui.Text
 import com.jakewharton.mosaic.ui.TextStyle
-import kotlin.coroutines.coroutineContext
 import kotlin.time.TimeSource
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -109,7 +109,7 @@ private suspend fun runFullscreenMosaic(
 
             mosaic.setContent(content)
 
-            launch {
+            val frameClockJob = launch {
                 val timeSource = TimeSource.Monotonic
                 val start = timeSource.markNow()
                 while (true) {
@@ -118,7 +118,11 @@ private suspend fun runFullscreenMosaic(
                 }
             }
 
-            mosaic.awaitComplete()
+            try {
+                mosaic.awaitComplete()
+            } finally {
+                frameClockJob.cancelAndJoin()
+            }
         } finally {
             terminalController.exitAlternateScreen()
         }
