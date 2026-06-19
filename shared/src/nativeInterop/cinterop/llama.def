@@ -1,0 +1,11 @@
+headers = llama.h ggml-backend.h
+headerFilter = llama.h ggml-backend.h
+package = dev.lokal.native.llama
+
+# compilerOpts (include paths) are set programmatically in build.gradle.kts
+# via cinterops { llama { includeDirs.allHeaders(...) } } — no need to duplicate here.
+
+# System libraries to link (static llama/ggml libs are set in build.gradle.kts)
+linkerOpts.osx   = -lc++ -framework Accelerate -framework Metal -framework Foundation -framework MetalKit
+linkerOpts.linux = -lstdc++ -lm -lpthread
+linkerOpts.mingw = -lstdc++ -lws2_32
