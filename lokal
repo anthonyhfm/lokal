@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+os="$(uname -s)"
+arch="$(uname -m)"
+gradle_user_home="${GRADLE_USER_HOME:-$PWD/.gradle-user-home}"
+
+case "$os:$arch" in
+  Darwin:arm64|Darwin:aarch64)
+    module="macos"
+    gradle_task=":macos:linkDebugExecutableMacosArm64"
+    binary="./macos/build/bin/macosArm64/debugExecutable/lokal-macos.kexe"
+    ;;
+  Linux:x86_64|Linux:amd64)
+    module="linux"
+    gradle_task=":linux:linkDebugExecutableLinuxX64"
+    binary="./linux/build/bin/linuxX64/debugExecutable/lokal-linux.kexe"
+    ;;
+  MINGW64_NT-*:x86_64|MSYS_NT-*:x86_64|CYGWIN_NT-*:x86_64)
+    module="windows"
+    gradle_task=":windows:linkDebugExecutableMingwX64"
+    binary="./windows/build/bin/mingwX64/debugExecutable/lokal-windows.exe"
+    ;;
+  *)
+    echo "Unsupported host platform: os=$os arch=$arch" >&2
+    exit 1
+    ;;
+esac
+
+mkdir -p "$gradle_user_home"
+
+GRADLE_USER_HOME="$gradle_user_home" ./gradlew "$gradle_task"
+
+if [[ ! -x "$binary" ]]; then
+  echo "Expected executable was not produced for module '$module': $binary" >&2
+  exit 1
+fi
+
+exec "$binary"
