@@ -1,9 +1,9 @@
 package lokal.linux
 
-import lokal.TerminalController
 import kotlinx.coroutines.runBlocking
 import lokal.platformModule
 import lokal.runLokal
+import lokal.terminal.TerminalController
 
 fun main() {
     runBlocking {

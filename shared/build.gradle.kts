@@ -5,6 +5,7 @@ plugins {
 }
 
 kotlin {
+  jvm()
   macosArm64()
   linuxX64()
   mingwX64()
@@ -18,6 +19,12 @@ kotlin {
         implementation(libs.mosaic.runtime)
         implementation(libs.mosaic.tty)
         implementation(libs.mosaic.tty.terminal)
+      }
+    }
+
+    jvmMain {
+      dependencies {
+        implementation(libs.koog.agents)
       }
     }
   }

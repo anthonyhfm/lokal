@@ -1,6 +1,5 @@
 package lokal
 
-import androidx.compose.runtime.BroadcastFrameClock
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -8,35 +7,23 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.jakewharton.mosaic.LocalTerminalState
-import com.jakewharton.mosaic.Mosaic
-import com.jakewharton.mosaic.TextCanvas
 import com.jakewharton.mosaic.layout.DrawScope
 import com.jakewharton.mosaic.layout.drawBehind
 import com.jakewharton.mosaic.layout.size
 import com.jakewharton.mosaic.modifier.Modifier
-import com.jakewharton.mosaic.terminal.Terminal
-import com.jakewharton.mosaic.tty.Tty
-import com.jakewharton.mosaic.tty.terminal.asTerminalIn
 import com.jakewharton.mosaic.ui.Alignment
-import com.jakewharton.mosaic.ui.Box
+import com.jakewharton.mosaic.ui.Arrangement
 import com.jakewharton.mosaic.ui.Color
+import com.jakewharton.mosaic.ui.Column
 import com.jakewharton.mosaic.ui.Text
 import com.jakewharton.mosaic.ui.TextStyle
-import kotlin.time.TimeSource
-import kotlinx.coroutines.cancelAndJoin
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import lokal.terminal.TerminalController
+import lokal.terminal.runFullscreenMosaic
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.core.module.Module
 import org.koin.dsl.module
-
-interface TerminalController {
-    fun enterAlternateScreen()
-
-    fun exitAlternateScreen()
-}
 
 fun platformModule(terminalController: TerminalController): Module = module {
     single<TerminalController> { terminalController }
@@ -73,95 +60,18 @@ class LokalApplication(
                 }
             }
 
-            Box(
+            Column(
                 modifier = Modifier
                     .size(terminalState.size.columns, terminalState.size.rows)
                     .drawBehind {
                         drawRotatingRainbowBorder(rainbowPhase)
                     },
-                contentAlignment = Alignment.Center,
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 Text(
                     value = "Welcome to Lokal!",
                 )
-            }
-        }
-    }
-}
-
-private suspend fun runFullscreenMosaic(
-    terminalController: TerminalController,
-    content: @Composable () -> Unit,
-) = coroutineScope {
-    val tty = Tty.tryBind() ?: error("Unable to run in non-interactive mode.")
-    tty.asTerminalIn(this).use { terminal ->
-        terminalController.enterAlternateScreen()
-        try {
-            val clock = BroadcastFrameClock()
-            val rendering = FullscreenRendering(terminal)
-            val mosaic = Mosaic(
-                coroutineContext = coroutineContext + clock,
-                onDraw = { rootNode ->
-                    print(rendering.render(rootNode).toString())
-                },
-                terminal = terminal,
-            )
-
-            mosaic.setContent(content)
-
-            val frameClockJob = launch {
-                val timeSource = TimeSource.Monotonic
-                val start = timeSource.markNow()
-                while (true) {
-                    clock.sendFrame(start.elapsedNow().inWholeNanoseconds)
-                    delay(1)
-                }
-            }
-
-            try {
-                mosaic.awaitComplete()
-            } finally {
-                frameClockJob.cancelAndJoin()
-            }
-        } finally {
-            terminalController.exitAlternateScreen()
-        }
-    }
-}
-
-private class FullscreenRendering(
-    private val terminal: Terminal,
-) {
-    private val builder = StringBuilder(100)
-
-    fun render(mosaic: Mosaic): CharSequence {
-        return builder.apply {
-            clear()
-            append("\u001B[H")
-
-            if (terminal.capabilities.synchronizedOutput) {
-                append("\u001B[?2026h")
-            }
-
-            appendSurface(mosaic.draw())
-
-            if (terminal.capabilities.synchronizedOutput) {
-                append("\u001B[?2026l")
-            }
-        }
-    }
-
-    private fun StringBuilder.appendSurface(surface: TextCanvas) {
-        for (row in 0 until surface.height) {
-            surface.appendRowTo(
-                appendable = this,
-                row = row,
-                ansiLevel = terminal.capabilities.ansiLevel,
-                supportsKittyUnderlines = terminal.capabilities.kittyUnderline,
-            )
-
-            if (row != surface.height - 1) {
-                append("\r\n")
             }
         }
     }

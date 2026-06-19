@@ -2,11 +2,13 @@
 compose = "1.11.1"
 coroutines = "1.10.2"
 kotlin = "2.4.0"
+koog = "1.0.0"
 mosaic = "0.18.0"
 
 [libraries]
 compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "compose" }
 koin-core = { module = "io.insert-koin:koin-core", version = "4.2.2" }
+koog-agents = { module = "ai.koog:koog-agents", version.ref = "koog" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 mosaic-runtime = { module = "com.jakewharton.mosaic:mosaic-runtime", version.ref = "mosaic" }
 mosaic-tty = { module = "com.jakewharton.mosaic:mosaic-tty", version.ref = "mosaic" }

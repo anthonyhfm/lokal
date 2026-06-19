@@ -1,9 +1,9 @@
 package lokal.macos
 
 import kotlinx.coroutines.runBlocking
-import lokal.TerminalController
 import lokal.platformModule
 import lokal.runLokal
+import lokal.terminal.TerminalController
 
 fun main() {
     runBlocking {
