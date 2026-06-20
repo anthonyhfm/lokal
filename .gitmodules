@@ -3,4 +3,4 @@
 	url = https://github.com/ggml-org/llama.cpp.git
 [submodule "koog"]
 	path = koog
-	url = https://github.com/JetBrains/koog.git
+	url = https://github.com/anthonyhfm/koog.git
