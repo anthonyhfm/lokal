@@ -8,6 +8,7 @@ import dev.lokal.native.llama.llama_sampler_chain_init
 import dev.lokal.native.llama.llama_sampler_free
 import dev.lokal.native.llama.llama_sampler_init_dist
 import dev.lokal.native.llama.llama_sampler_init_greedy
+import dev.lokal.native.llama.llama_sampler_init_min_p
 import dev.lokal.native.llama.llama_sampler_init_temp
 import dev.lokal.native.llama.llama_sampler_sample
 import kotlinx.cinterop.CPointer
@@ -23,7 +24,8 @@ sealed class SamplingStrategy {
      * Uses [seed] for reproducibility.
      */
     data class Temperature(
-        val temp: Float = 0.8f,
+        val temp: Float = 0.2f,
+        val minP: Float = 0.05f,
         val seed: UInt = 42u,
     ) : SamplingStrategy()
 }
@@ -49,6 +51,7 @@ class LlamaSampler(strategy: SamplingStrategy = SamplingStrategy.Temperature()) 
                 llama_sampler_chain_add(chain, llama_sampler_init_greedy())
             }
             is SamplingStrategy.Temperature -> {
+                llama_sampler_chain_add(chain, llama_sampler_init_min_p(strategy.minP, 1uL))
                 llama_sampler_chain_add(chain, llama_sampler_init_temp(strategy.temp))
                 llama_sampler_chain_add(chain, llama_sampler_init_dist(strategy.seed))
             }

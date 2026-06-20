@@ -49,6 +49,8 @@ class LlamaEngine private constructor(
     private val sampler: LlamaSampler,
 ) : AutoCloseable {
 
+    val chatTemplateString: String? = model.chatTemplate()
+
     /**
      * Streams generated text from [prompt], emitting one decoded string piece per token.
      *

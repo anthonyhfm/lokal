@@ -2,6 +2,7 @@ package lokal.llama
 
 import cnames.structs.llama_model
 import cnames.structs.llama_vocab
+import dev.lokal.native.llama.llama_model_chat_template
 import dev.lokal.native.llama.llama_model_default_params
 import dev.lokal.native.llama.llama_model_free
 import dev.lokal.native.llama.llama_model_get_vocab
@@ -9,6 +10,7 @@ import dev.lokal.native.llama.llama_model_load_from_file
 import kotlinx.cinterop.CPointer
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.readValue
+import kotlinx.cinterop.toKStringFromUtf8
 import kotlinx.cinterop.useContents
 
 /**
@@ -53,6 +55,8 @@ class LlamaModel private constructor(
             return LlamaModel(modelPtr, vocabPtr)
         }
     }
+
+    fun chatTemplate(): String? = llama_model_chat_template(ptr, null)?.toKStringFromUtf8()
 
     override fun close() {
         llama_model_free(ptr)

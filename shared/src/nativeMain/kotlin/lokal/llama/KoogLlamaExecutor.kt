@@ -14,19 +14,17 @@ import kotlinx.coroutines.flow.flow
 
 import ai.koog.prompt.executor.model.PromptExecutor
 
-class KoogLlamaExecutor(private val engine: LlamaEngine) : PromptExecutor() {
+class KoogLlamaExecutor(
+    private val engine: LlamaEngine,
+    private val chatTemplate: ChatTemplate,
+) : PromptExecutor() {
+
     override suspend fun execute(
         prompt: Prompt,
         model: LLModel,
         tools: List<ToolDescriptor>
     ): Message.Assistant {
-        val promptText = buildString {
-            prompt.messages.forEach { msg ->
-                val roleStr = if (msg.role == Message.Role.Assistant) "model" else "user"
-                append("<start_of_turn>${roleStr}\n${msg.textContent()}<end_of_turn>\n")
-            }
-            append("<start_of_turn>model\n")
-        }
+        val promptText = formatPrompt(prompt)
         
         val builder = StringBuilder()
         engine.generate(promptText).collect { piece ->
@@ -34,7 +32,7 @@ class KoogLlamaExecutor(private val engine: LlamaEngine) : PromptExecutor() {
         }
         
         return Message.Assistant(
-            content = builder.toString(),
+            content = cleanResponse(builder.toString()),
             metaInfo = ResponseMetaInfo.create(KoogClock.System)
         )
     }
@@ -44,13 +42,7 @@ class KoogLlamaExecutor(private val engine: LlamaEngine) : PromptExecutor() {
         model: LLModel,
         tools: List<ToolDescriptor>
     ): Flow<StreamFrame> = flow {
-        val promptText = buildString {
-            prompt.messages.forEach { msg ->
-                val roleStr = if (msg.role == Message.Role.Assistant) "model" else "user"
-                append("<start_of_turn>${roleStr}\n${msg.textContent()}<end_of_turn>\n")
-            }
-            append("<start_of_turn>model\n")
-        }
+        val promptText = formatPrompt(prompt)
         
         engine.generate(promptText).collect { piece ->
             emit(StreamFrame.TextDelta(piece))
@@ -67,5 +59,43 @@ class KoogLlamaExecutor(private val engine: LlamaEngine) : PromptExecutor() {
 
     override fun close() {
         engine.close()
+    }
+
+    // ── Internal helpers ────────────────────────────────────────────────
+
+    /**
+     * Converts a Koog [Prompt] into the raw prompt string expected by the
+     * model, using the appropriate [ChatTemplate].
+     */
+    private fun formatPrompt(prompt: Prompt): String {
+        val chatMessages = prompt.messages.map { msg ->
+            val role = when (msg.role) {
+                Message.Role.System    -> "system"
+                Message.Role.Assistant -> "assistant"
+                else                   -> "user"
+            }
+            ChatMessage(role, msg.textContent())
+        }
+        return chatTemplate.formatPrompt(chatMessages)
+    }
+
+    /**
+     * Strips chain-of-thought `<think>` tags and cleans up common
+     * model output artifacts (trailing special tokens, whitespace, etc.).
+     */
+    private fun cleanResponse(raw: String): String {
+        return raw
+            // Strip complete <think>...</think> blocks (Qwen 3.5 CoT)
+            .replace(Regex("<think>[\\s\\S]*?</think>"), "")
+            // Strip orphaned/unclosed think tags
+            .replace(Regex("^\\s*</?think>\\s*"), "")
+            .replace(Regex("\\s*</?think>\\s*$"), "")
+            // Strip leaked special tokens that shouldn't appear in output
+            .replace("<|im_end|>", "")
+            .replace("<|im_start|>", "")
+            .replace("<end_of_turn>", "")
+            .replace("<start_of_turn>", "")
+            .replace("<|eot_id|>", "")
+            .trim()
     }
 }
