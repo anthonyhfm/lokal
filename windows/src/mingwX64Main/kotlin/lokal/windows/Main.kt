@@ -5,9 +5,15 @@ import lokal.platformModule
 import lokal.runLokal
 import lokal.terminal.TerminalController
 
+import lokal.createKoogAgent
+
 fun main() {
+    // TODO: Update this path to your actual local GGUF model path
+    val modelPath = "/Users/anthony/Desktop/Lokal/models/gemma-4-12b-it-Q4_K_M.gguf"
+    val agent = createKoogAgent(modelPath)
+
     runBlocking {
-        runLokal(platformModule(WindowsTerminalController()))
+        runLokal(platformModule(WindowsTerminalController(), agent))
     }
 }
 

@@ -1,3 +1,6 @@
 [submodule "native/llama.cpp"]
 	path = native/llama.cpp
 	url = https://github.com/ggml-org/llama.cpp.git
+[submodule "koog"]
+	path = koog
+	url = https://github.com/JetBrains/koog.git

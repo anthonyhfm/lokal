@@ -34,6 +34,7 @@ class CliInteractionManager {
     var lastAction by mutableStateOf("Click a button")
 
     private val clickTargets = mutableMapOf<Any, CliInteractionTarget>()
+    private val scrollTargets = mutableMapOf<Any, CliScrollTarget>()
 
     fun registerClickTarget(key: Any, bounds: CliBounds, onClick: () -> Unit) {
         clickTargets[key] = CliInteractionTarget(key, bounds, onClick)
@@ -41,6 +42,14 @@ class CliInteractionManager {
 
     fun unregisterClickTarget(key: Any) {
         clickTargets.remove(key)
+    }
+
+    fun registerScrollTarget(key: Any, bounds: CliBounds, onScroll: (Int) -> Unit) {
+        scrollTargets[key] = CliScrollTarget(key, bounds, onScroll)
+    }
+
+    fun unregisterScrollTarget(key: Any) {
+        scrollTargets.remove(key)
     }
 
     fun isHovered(bounds: CliBounds): Boolean {
@@ -57,8 +66,28 @@ class CliInteractionManager {
                 ?.onClick
                 ?.invoke()
         }
+
+        if (event.type == MouseEvent.Type.Press && event.button == MouseEvent.Button.WheelUp) {
+            scrollTargets.values
+                .lastOrNull { target -> target.bounds.contains(event.x, event.y) }
+                ?.onScroll
+                ?.invoke(-1)
+        }
+
+        if (event.type == MouseEvent.Type.Press && event.button == MouseEvent.Button.WheelDown) {
+            scrollTargets.values
+                .lastOrNull { target -> target.bounds.contains(event.x, event.y) }
+                ?.onScroll
+                ?.invoke(1)
+        }
     }
 }
+
+private class CliScrollTarget(
+    val key: Any,
+    val bounds: CliBounds,
+    val onScroll: (Int) -> Unit,
+)
 
 internal val LocalInteractionManager = staticCompositionLocalOf<CliInteractionManager> {
     error("No CLI interaction manager provided.")

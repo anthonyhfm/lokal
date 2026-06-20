@@ -4,3 +4,5 @@ build/
 .kotlin/
 out/
 .gradle-user-home/
+*.gguf
+.idea

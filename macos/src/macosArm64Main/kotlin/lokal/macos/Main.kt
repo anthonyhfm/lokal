@@ -5,9 +5,20 @@ import lokal.platformModule
 import lokal.runLokal
 import lokal.terminal.TerminalController
 
+import lokal.createKoogAgent
+
+@OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
 fun main() {
+    // Disable any standard output (including koog kotlin-logging) so it doesn't break Mosaic TUI.
+    // Mosaic is now configured to write directly to Tty.
+    platform.posix.freopen("/dev/null", "w", platform.posix.stdout)
+
+    // TODO: Update this path to your actual local GGUF model path
+    val modelPath = "/Users/anthony/Desktop/Lokal/models/gemma-4-12b-it-Q4_K_M.gguf"
+    val agent = createKoogAgent(modelPath)
+
     runBlocking {
-        runLokal(platformModule(MacosTerminalController()))
+        runLokal(platformModule(MacosTerminalController(), agent))
     }
 }
 

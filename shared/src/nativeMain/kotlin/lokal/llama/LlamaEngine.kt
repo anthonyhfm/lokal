@@ -109,6 +109,9 @@ class LlamaEngine private constructor(
             contextConfig: LlamaContextConfig = LlamaContextConfig(),
             strategy: SamplingStrategy = SamplingStrategy.Temperature(),
         ): LlamaEngine {
+            // Disable llama.cpp logs from printing to stderr and breaking Mosaic
+            dev.lokal.native.llama.llama_log_set(kotlinx.cinterop.staticCFunction { _, _, _ -> }, null)
+
             // Load all GGML backends (CPU, Metal on macOS, CUDA on Linux, etc.)
             ggml_backend_load_all()
 

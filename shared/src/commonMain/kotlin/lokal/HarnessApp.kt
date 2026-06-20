@@ -26,16 +26,23 @@ import lokal.terminal.runFullscreenMosaic
 import lokal.ui.components.PromptEntryField
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
+import kotlinx.coroutines.launch
 import org.koin.core.module.Module
 import org.koin.dsl.module
 
-fun platformModule(terminalController: TerminalController): Module = module {
+import ai.koog.agents.core.agent.AIAgent
+import lokal.ui.views.chat.ChatView
+import lokal.ui.views.chat.ChatViewModel
+
+fun platformModule(terminalController: TerminalController, agent: AIAgent<String, String>): Module = module {
     single<TerminalController> { terminalController }
+    single<AIAgent<String, String>> { agent }
 }
 
 private val sharedModule = module {
     single { StatusStripController() }
-    single { LokalApplication(get(), get()) }
+    single { ChatViewModel(get()) }
+    single { LokalApplication(get(), get(), get()) }
 }
 
 suspend fun runLokal(platformModule: Module) {
@@ -53,46 +60,32 @@ suspend fun runLokal(platformModule: Module) {
 class LokalApplication(
     private val terminalController: TerminalController,
     private val stripController: StatusStripController,
+    private val chatViewModel: ChatViewModel
 ) {
     suspend fun run() {
         runFullscreenMosaic(terminalController) {
             val terminalState = LocalTerminalState.current
             
             var topEffect by remember { mutableStateOf(stripController.topStripEffect.value) }
+            
             LaunchedEffect(stripController.topStripEffect) {
                 stripController.topStripEffect.collect { topEffect = it }
             }
             
             var bottomEffect by remember { mutableStateOf(stripController.bottomStripEffect.value) }
+
             LaunchedEffect(stripController.bottomStripEffect) {
                 stripController.bottomStripEffect.collect { bottomEffect = it }
             }
-
-            var promptText by remember { mutableStateOf("") }
-            val terminalWidth = terminalState.size.columns
-            val promptLines = lokal.ui.components.wrapText(promptText, terminalWidth - 6).size
-            val promptHeight = promptLines + 2
 
             Column(
                 modifier = Modifier.size(terminalState.size.columns, terminalState.size.rows)
             ) {
                 StripView(topEffect, terminalState.size.columns, isTop = true)
                 
-                Column(
-                    modifier = Modifier.weight(1f)
-                        .fillMaxWidth(),
-                    verticalArrangement = Arrangement.Center,
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        value = "Welcome to Lokal!",
-                    )
-                }
-
-                PromptEntryField(
-                    value = promptText,
-                    onValueChange = { promptText = it },
-                    onEnter = { promptText = "" }
+                ChatView(
+                    viewModel = chatViewModel,
+                    modifier = Modifier.weight(1f).fillMaxWidth()
                 )
 
                 StripView(bottomEffect, terminalState.size.columns, isTop = false)
@@ -104,6 +97,7 @@ class LokalApplication(
 @Composable
 private fun StripView(effect: StripEffect, width: Int, isTop: Boolean) {
     val char = if (isTop) "▀" else "▄"
+
     Row(modifier = Modifier.size(width, 1).drawBehind {
         for (column in 0 until width) {
             val color = when (effect) {

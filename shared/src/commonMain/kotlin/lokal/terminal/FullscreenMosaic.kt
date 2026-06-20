@@ -35,7 +35,7 @@ suspend fun runFullscreenMosaic(
     val tty = Tty.tryBind() ?: error("Unable to run in non-interactive mode.")
 
     tty.asTerminalIn(this).use { terminal ->
-        terminalController.enterAlternateScreen()
+        tty.writeString("\u001B[?1049h\u001B[H\u001B[2J\u001B[?25l")
         tty.writeString(EnableMouseTracking)
 
         try {
@@ -74,7 +74,7 @@ suspend fun runFullscreenMosaic(
             val mosaic = Mosaic(
                 coroutineContext = coroutineContext + clock,
                 onDraw = { rootNode ->
-                    print(rendering.render(rootNode).toString())
+                    tty.writeString(rendering.render(rootNode).toString())
                 },
                 terminal = interactiveTerminal,
             )
@@ -106,7 +106,7 @@ suspend fun runFullscreenMosaic(
         } finally {
             tty.writeString(DisableMouseTracking)
 
-            terminalController.exitAlternateScreen()
+            tty.writeString("\u001B[?25h\u001B[?1049l")
         }
     }
 }

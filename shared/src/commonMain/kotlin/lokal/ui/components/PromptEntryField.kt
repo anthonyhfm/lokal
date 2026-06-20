@@ -2,14 +2,9 @@ package lokal.ui.components
 
 import androidx.compose.runtime.*
 import com.jakewharton.mosaic.LocalTerminalState
-import com.jakewharton.mosaic.layout.DrawScope
-import com.jakewharton.mosaic.layout.KeyEvent
 import com.jakewharton.mosaic.layout.drawBehind
-import com.jakewharton.mosaic.layout.onKeyEvent
 import com.jakewharton.mosaic.modifier.Modifier
 import com.jakewharton.mosaic.ui.Color
-import com.jakewharton.mosaic.ui.Column
-import com.jakewharton.mosaic.ui.Row
 import com.jakewharton.mosaic.ui.TextStyle
 import com.jakewharton.mosaic.layout.size
 import com.jakewharton.mosaic.ui.Box
