@@ -19,6 +19,12 @@ val hostArch = System.getProperty("os.arch").lowercase()
 val isMac = hostOs.contains("mac")
 val isLinux = hostOs.contains("linux")
 
+val cmakeExecutable = listOf(
+    "/opt/homebrew/bin/cmake", 
+    "/usr/local/bin/cmake", 
+    "/usr/bin/cmake"
+).find { file(it).exists() } ?: "cmake"
+
 val configureLlamaCpp by tasks.registering(Exec::class) {
   group = "native"
   description = "Configures llama.cpp build with CMake"
@@ -30,7 +36,7 @@ val configureLlamaCpp by tasks.registering(Exec::class) {
   workingDir = llamaBuildDir
 
   val cmakeArgs = buildList {
-    add("cmake")
+    add(cmakeExecutable)
     add(llamaRootDir.absolutePath)
     add("-DCMAKE_BUILD_TYPE=Release")
     add("-DBUILD_SHARED_LIBS=OFF")         // Static libraries only
@@ -62,7 +68,7 @@ val buildLlamaCpp by tasks.registering(Exec::class) {
 
   workingDir = llamaBuildDir
   commandLine(
-    "cmake", "--build", ".",
+    cmakeExecutable, "--build", ".",
     "--target", "llama",    // Only build libllama.a + its ggml deps — no executables
     "--config", "Release",
     "-j", Runtime.getRuntime().availableProcessors().toString()
