@@ -9,6 +9,7 @@ import androidx.compose.runtime.setValue
 import com.jakewharton.mosaic.LocalTerminalState
 import com.jakewharton.mosaic.layout.DrawScope
 import com.jakewharton.mosaic.layout.drawBehind
+import com.jakewharton.mosaic.layout.fillMaxWidth
 import com.jakewharton.mosaic.layout.size
 import com.jakewharton.mosaic.modifier.Modifier
 import com.jakewharton.mosaic.ui.Alignment
@@ -22,6 +23,7 @@ import lokal.terminal.StatusStripController
 import lokal.terminal.StripEffect
 import lokal.terminal.TerminalController
 import lokal.terminal.runFullscreenMosaic
+import lokal.ui.components.PromptEntryField
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.core.module.Module
@@ -66,13 +68,19 @@ class LokalApplication(
                 stripController.bottomStripEffect.collect { bottomEffect = it }
             }
 
+            var promptText by remember { mutableStateOf("") }
+            val terminalWidth = terminalState.size.columns
+            val promptLines = lokal.ui.components.wrapText(promptText, terminalWidth - 6).size
+            val promptHeight = promptLines + 2
+
             Column(
                 modifier = Modifier.size(terminalState.size.columns, terminalState.size.rows)
             ) {
                 StripView(topEffect, terminalState.size.columns, isTop = true)
                 
                 Column(
-                    modifier = Modifier.size(terminalState.size.columns, terminalState.size.rows - 2),
+                    modifier = Modifier.weight(1f)
+                        .fillMaxWidth(),
                     verticalArrangement = Arrangement.Center,
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
@@ -80,6 +88,12 @@ class LokalApplication(
                         value = "Welcome to Lokal!",
                     )
                 }
+
+                PromptEntryField(
+                    value = promptText,
+                    onValueChange = { promptText = it },
+                    onEnter = { promptText = "" }
+                )
 
                 StripView(bottomEffect, terminalState.size.columns, isTop = false)
             }

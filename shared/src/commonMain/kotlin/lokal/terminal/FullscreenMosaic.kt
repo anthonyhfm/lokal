@@ -6,6 +6,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import com.jakewharton.mosaic.Mosaic
 import com.jakewharton.mosaic.TextCanvas
 import com.jakewharton.mosaic.terminal.Event
+import com.jakewharton.mosaic.terminal.KeyboardEvent
 import com.jakewharton.mosaic.terminal.MouseEvent
 import com.jakewharton.mosaic.terminal.ResizeEvent
 import com.jakewharton.mosaic.terminal.Terminal
@@ -19,6 +20,13 @@ import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+import androidx.compose.runtime.staticCompositionLocalOf
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.emptyFlow
+
+val LocalRawKeyboardEvents = staticCompositionLocalOf<Flow<KeyboardEvent>> { emptyFlow() }
 
 suspend fun runFullscreenMosaic(
     terminalController: TerminalController,
@@ -35,6 +43,7 @@ suspend fun runFullscreenMosaic(
             val rendering = FullscreenRendering(terminal)
             val interactionManager = CliInteractionManager()
             val forwardedEvents = Channel<Event>(Channel.UNLIMITED)
+            val rawKeyboardEvents = MutableSharedFlow<KeyboardEvent>(extraBufferCapacity = 64)
             val interactiveTerminal = InteractiveTerminal(terminal, forwardedEvents)
             val timeSource = TimeSource.Monotonic
             val start = timeSource.markNow()
@@ -44,10 +53,21 @@ suspend fun runFullscreenMosaic(
                     if (event is MouseEvent) {
                         interactionManager.handleMouseEvent(event)
                     }
-                    if (event is MouseEvent || event is ResizeEvent) {
+                    if (event is MouseEvent || event is ResizeEvent || event is KeyboardEvent) {
                         clock.sendFrame(start.elapsedNow().inWholeNanoseconds)
                     }
-                    forwardedEvents.send(event)
+                    if (event is KeyboardEvent) {
+                        rawKeyboardEvents.tryEmit(event)
+                        val codepoint = event.codepoint
+                        val isSafe = codepoint == 9 || codepoint == 13 || codepoint == 27 ||
+                                     codepoint in 32..126 || codepoint == 127 ||
+                                     codepoint in 57348..57357 || codepoint in 57364..57398
+                        if (isSafe) {
+                            forwardedEvents.send(event)
+                        }
+                    } else {
+                        forwardedEvents.send(event)
+                    }
                 }
             }
 
@@ -60,7 +80,10 @@ suspend fun runFullscreenMosaic(
             )
 
             mosaic.setContent {
-                CompositionLocalProvider(LocalInteractionManager provides interactionManager) {
+                CompositionLocalProvider(
+                    LocalInteractionManager provides interactionManager,
+                    LocalRawKeyboardEvents provides rawKeyboardEvents
+                ) {
                     content()
                 }
             }
